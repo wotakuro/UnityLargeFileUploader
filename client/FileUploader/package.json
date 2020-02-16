@@ -1,0 +1,12 @@
+{
+    "name": "com.utj.largefileuploader",
+    "displayName": "largeFileUploader",
+    "version": "0.1.0",
+    "unity": "2018.3",
+    "description": "largefile uploader",
+    "keywords": [
+        "uploader"
+    ],
+    "category": "profiler",
+    "dependencies": {}
+}
