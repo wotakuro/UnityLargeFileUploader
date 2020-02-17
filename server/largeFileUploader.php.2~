@@ -20,7 +20,7 @@ main();
     mkdir($dirPath );
     $fileInfo = $_POST['fileinfo'];
     file_put_contents( $dirPath.'/info.txt',$fileInfo);
-    print('{"uniqueid":"'.$uniqueId .'"}');
+    print('{uniqueid:"'.$uniqueId .'"}');
   }
 
   function UploadPhase($basePath){

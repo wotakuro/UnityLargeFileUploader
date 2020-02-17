@@ -19,7 +19,7 @@ namespace UTJ
             var inst = Instance;
         }
 
-        private static FileUploader Instance
+        public static FileUploader Instance
         {
             get
             {
@@ -44,19 +44,15 @@ namespace UTJ
             behaiour.updateCallback = this.Update;
         }
 
-        public static void SetUploadUrl(string url){
+        public void SetUploadUrl(string url){
             FileUploadLogic.ServerUrl = url;
         }
+        
 
-        public static void UploadRequest(string file, bool autoDelete = false)
-        {
-            Instance._UploadRequest(file, autoDelete);
-        }
-
-        private void _UploadRequest(string file, bool autoDelete)
+        public void UploadRequest(string file,string info)
         {
             var logic = GetOrCreateLogic();
-            logics.Add(logic);
+            logic.Request(file, info, null, null, null, null);
         }
 
         private FileUploadLogic GetOrCreateLogic()
@@ -69,6 +65,7 @@ namespace UTJ
                 }
             }
             var logic = new FileUploadLogic();
+            logics.Add(logic);
             return logic;
         }
 

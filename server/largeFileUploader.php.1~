@@ -16,11 +16,9 @@ main();
 
   function InitializePhase($basePath){
     $uniqueId = uniqid();
-    $dirPath = $basePath . '/'.$uniqueId;
-    mkdir($dirPath );
+    mkdir($basePath . '/'.$uniqueId );
     $fileInfo = $_POST['fileinfo'];
-    file_put_contents( $dirPath.'/info.txt',$fileInfo);
-    print('{"uniqueid":"'.$uniqueId .'"}');
+    print('{uniqueid:"'.$uniqueId .'"}');
   }
 
   function UploadPhase($basePath){

@@ -10,13 +10,22 @@ namespace UTJ
         public static string ServerUrl{ get;set;}
 
         private string localFilePath;
+        private string fileInformation;
         private IEnumerator uploadCoroutine;
         private byte[] buffer = new byte[1024 * 1024];
+        private InitServerResponse initServerResponse;
 
         private FileUploader.FileUploadComplete uploadCompleteCallBack;
         private FileUploader.FileUploadFailed uploadFailedCallback;
         private FileUploader.BlockUploadFailed blockFailedCallBack;
         private FileUploader.BlockUploadProgress blockProgressCallback;
+
+        [Serializable]
+        private struct InitServerResponse
+        {
+            [SerializeField]
+            public string uniqueid;
+        } 
 
         public bool IsExecute
         {
@@ -27,10 +36,12 @@ namespace UTJ
         }
 
         public void Request(string localPath,
+            string fileInfo,
             FileUploader.FileUploadComplete onComplete, FileUploader.FileUploadFailed onFailed,
             FileUploader.BlockUploadProgress onBlockProgress, FileUploader.BlockUploadFailed onBlockFaild)
         {
             this.localFilePath = localPath;
+            this.fileInformation = fileInfo;
             this.uploadCoroutine = this.UploadFile();
         }
 
@@ -91,7 +102,12 @@ namespace UTJ
                 Debug.LogError("No uploadFile " + localFilePath);
                 yield break;
             }
-            // get guid
+            // get uniqueId
+            var first = GetFirstSession();
+            while (first.MoveNext())
+            {
+                yield return null;
+            }
 
 
             // upload logic
@@ -107,6 +123,32 @@ namespace UTJ
             }
         }
 
+        private IEnumerator GetFirstSession()
+        {
+
+            WWWForm form = new WWWForm();
+
+            form.AddField("mode", 0);
+            form.AddField("fileinfo", this.fileInformation);
+
+            bool doneFlag = true;
+            while (doneFlag)
+            {
+                // request
+                UnityWebRequest request = UnityWebRequest.Post(ServerUrl, form);
+                yield return request.SendWebRequest();
+                while (!request.isDone)
+                {
+                    yield return null;
+                }
+                var response = request.downloadHandler.text;
+                Debug.Log(response + " :: " + request.downloadedBytes);
+
+                this.initServerResponse = JsonUtility.FromJson<InitServerResponse>(response);
+                doneFlag = false;
+            }
+        }
+
         private IEnumerator UploadBlockFile(string fileName,int block,int blockNum)
         {
             var uploadData = ReadBlockFromFile(block);
@@ -114,6 +156,7 @@ namespace UTJ
             WWWForm form = new WWWForm();
             form.AddField("blockNum", blockNum);
             form.AddField("block", block);
+            form.AddField("mode", 1);
             form.AddBinaryData("uploaded_file", uploadData, fileName, "application/x-binary");
             bool uploadFlag = true;
             while (uploadFlag)
