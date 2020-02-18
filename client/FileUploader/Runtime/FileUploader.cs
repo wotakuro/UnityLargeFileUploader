@@ -7,7 +7,7 @@ namespace UTJ
     {
         public delegate void FileUploadFailed(string file);
         public delegate void FileUploadComplete(string file);
-        public delegate bool BlockUploadFailed(string file, int block);
+        public delegate void BlockUploadFailed(string file, int block,System.Action retry,System.Action cancel);
         public delegate void BlockUploadProgress(string file, int block,int blockNum);
 
         private static FileUploader instance = null;
@@ -67,14 +67,6 @@ namespace UTJ
             var logic = new FileUploadLogic();
             logics.Add(logic);
             return logic;
-        }
-
-        private void Completed(FileUploadLogic logic, string file)
-        {
-        }
-
-        private void Failed(FileUploadLogic logic, string file)
-        {
         }
 
         private void Update()

@@ -7,24 +7,31 @@ namespace UTJ
 {
     public class FileUploadLogic
     {
+        private enum EStatus {
+            None,
+            WaitingForRetryOrCancel,
+            Canceled,
+        };
+
         public static string ServerUrl{ get;set;}
 
         private string localFilePath;
         private string fileInformation;
         private IEnumerator uploadCoroutine;
         private byte[] buffer = new byte[1024 * 1024];
-        private InitServerResponse initServerResponse;
+        private InitServerResponse initServerResponse;        
 
         private FileUploader.FileUploadComplete uploadCompleteCallBack;
         private FileUploader.FileUploadFailed uploadFailedCallback;
         private FileUploader.BlockUploadFailed blockFailedCallBack;
         private FileUploader.BlockUploadProgress blockProgressCallback;
+        private EStatus status = EStatus.None;
 
         [Serializable]
         private struct InitServerResponse
         {
             [SerializeField]
-            public string uniqueid;
+            public string sessionid;
         } 
 
         public bool IsExecute
@@ -40,6 +47,7 @@ namespace UTJ
             FileUploader.FileUploadComplete onComplete, FileUploader.FileUploadFailed onFailed,
             FileUploader.BlockUploadProgress onBlockProgress, FileUploader.BlockUploadFailed onBlockFaild)
         {
+            this.status = EStatus.None;
             this.localFilePath = localPath;
             this.fileInformation = fileInfo;
             this.uploadCoroutine = this.UploadFile();
@@ -63,22 +71,23 @@ namespace UTJ
             int num = -1;
             using (var stream = new FileStream(localFilePath, FileMode.Open,FileAccess.Read))
             {
-                num = (int)(stream.Length + (buffer.Length - 1) / buffer.Length);
+                num = (int)((stream.Length + (buffer.Length - 1) )/ buffer.Length);
             }
             return num;
         }
 
-        private int ReadBlockToBuffer( int block)
+        private int ReadBlockToBuffer(int block)
         {
             var filename = localFilePath;
             int size = -1;
             using (var stream = new FileStream(filename, FileMode.Open, FileAccess.Read))
             {
-                stream.Position = block + buffer.Length;
+                stream.Position = block * buffer.Length;
                 size = stream.Read(this.buffer, 0, buffer.Length);
             }
             return size;
         }
+
         private byte[] ReadBlockFromFile(int block)
         {
             int size = ReadBlockToBuffer(block);
@@ -102,7 +111,7 @@ namespace UTJ
                 Debug.LogError("No uploadFile " + localFilePath);
                 yield break;
             }
-            // get uniqueId
+            // get sessionid
             var first = GetFirstSession();
             while (first.MoveNext())
             {
@@ -121,13 +130,17 @@ namespace UTJ
                     yield return null;
                 }
             }
+            // complete!
+            if (this.uploadCompleteCallBack != null)
+            {
+                this.uploadCompleteCallBack(this.localFilePath);
+            }
         }
 
         private IEnumerator GetFirstSession()
         {
 
             WWWForm form = new WWWForm();
-
             form.AddField("mode", 0);
             form.AddField("fileinfo", this.fileInformation);
 
@@ -142,8 +155,6 @@ namespace UTJ
                     yield return null;
                 }
                 var response = request.downloadHandler.text;
-                Debug.Log(response + " :: " + request.downloadedBytes);
-
                 this.initServerResponse = JsonUtility.FromJson<InitServerResponse>(response);
                 doneFlag = false;
             }
@@ -157,6 +168,7 @@ namespace UTJ
             form.AddField("blockNum", blockNum);
             form.AddField("block", block);
             form.AddField("mode", 1);
+            form.AddField("sessionid", initServerResponse.sessionid);
             form.AddBinaryData("uploaded_file", uploadData, fileName, "application/x-binary");
             bool uploadFlag = true;
             while (uploadFlag)
@@ -170,9 +182,13 @@ namespace UTJ
                 {
                     uploadFlag = false;
                 }
-                else
+                else if(request.isDone)
                 {
                     uploadFlag = false;
+                    if (this.blockProgressCallback != null)
+                    {
+                        this.blockProgressCallback(this.localFilePath, block, blockNum);
+                    }
                 }
             }
         }

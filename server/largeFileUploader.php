@@ -20,7 +20,7 @@ main();
     mkdir($dirPath );
     $fileInfo = $_POST['fileinfo'];
     file_put_contents( $dirPath.'/info.txt',$fileInfo);
-    print('{"uniqueid":"'.$uniqueId .'"}');
+    print('{"sessionid":"'.$uniqueId .'"}');
   }
 
   function UploadPhase($basePath){
@@ -33,7 +33,7 @@ main();
     $originTmp = $_FILES['uploaded_file']['tmp_name'];
     $originFile = $_FILES['uploaded_file']['name'];
     $isDone = ($_POST['block']+1 == $_POST['blockNum'] && $_POST['blockNum'] > 0);
-    $path = $basePath .'/' .$_POST['uniqueid'];
+    $path = $basePath .'/' .$_POST['sessionid'] . '/';
 
     if(!executeFile($originTmp , $originFile,$path ,$isDone )) {
       header('HTTP/1.0 403 Forbidden', FALSE);
