@@ -1,15 +1,10 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 
-namespace UTJ
+namespace UTJ.Uploader
 {
     public class FileUploader
     {
-        public delegate void FileUploadFailed(string file);
-        public delegate void FileUploadComplete(string file);
-        public delegate void BlockUploadFailed(string file, int block,System.Action retry,System.Action cancel);
-        public delegate void BlockUploadProgress(string file, int block,int blockNum);
-
         private static FileUploader instance = null;
         private List<FileUploadLogic> logics = new List<FileUploadLogic>();
 
@@ -47,12 +42,12 @@ namespace UTJ
         public void SetUploadUrl(string url){
             FileUploadLogic.ServerUrl = url;
         }
-        
 
-        public void UploadRequest(string file,string info)
+
+        public void UploadRequest(string file, string info, IFileUploadProgressBehaviour behaviour)
         {
             var logic = GetOrCreateLogic();
-            logic.Request(file, info, null, null, null, null);
+            logic.Request(file, info, behaviour);
         }
 
         private FileUploadLogic GetOrCreateLogic()

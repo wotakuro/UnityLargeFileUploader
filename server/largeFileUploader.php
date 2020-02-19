@@ -3,7 +3,7 @@ ini_set('display_errors', "On");
 main();
 
   function main(){
-    $basePath = "./lagefiles";
+    $basePath = "./largefiles";
     switch($_POST['mode']){
       case 0:
         InitializePhase($basePath);

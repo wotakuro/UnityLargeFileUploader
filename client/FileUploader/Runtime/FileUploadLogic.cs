@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using System.IO;
 using System;
-namespace UTJ
+namespace UTJ.Uploader
 {
     public class FileUploadLogic
     {
@@ -19,12 +19,9 @@ namespace UTJ
         private string fileInformation;
         private IEnumerator uploadCoroutine;
         private byte[] buffer = new byte[1024 * 1024];
-        private InitServerResponse initServerResponse;        
+        private InitServerResponse initServerResponse;
 
-        private FileUploader.FileUploadComplete uploadCompleteCallBack;
-        private FileUploader.FileUploadFailed uploadFailedCallback;
-        private FileUploader.BlockUploadFailed blockFailedCallBack;
-        private FileUploader.BlockUploadProgress blockProgressCallback;
+        private IFileUploadProgressBehaviour uploadBehaviour;
         private EStatus status = EStatus.None;
 
         [Serializable]
@@ -43,11 +40,10 @@ namespace UTJ
         }
 
         public void Request(string localPath,
-            string fileInfo,
-            FileUploader.FileUploadComplete onComplete, FileUploader.FileUploadFailed onFailed,
-            FileUploader.BlockUploadProgress onBlockProgress, FileUploader.BlockUploadFailed onBlockFaild)
+            string fileInfo, IFileUploadProgressBehaviour behaviour)
         {
             this.status = EStatus.None;
+            this.uploadBehaviour = behaviour;
             this.localFilePath = localPath;
             this.fileInformation = fileInfo;
             this.uploadCoroutine = this.UploadFile();
@@ -101,7 +97,6 @@ namespace UTJ
                 tmp[i] = buffer[i];
             }
             return tmp;
-
         }
 
         private IEnumerator UploadFile()
@@ -129,11 +124,20 @@ namespace UTJ
                 {
                     yield return null;
                 }
+                // Canceled
+                if( this.status == EStatus.Canceled)
+                {
+                    if( this.uploadBehaviour != null)
+                    {
+                        this.uploadBehaviour.OnUploadFailed(this.localFilePath);
+                    }
+                    yield break;
+                }
             }
             // complete!
-            if (this.uploadCompleteCallBack != null)
+            if (this.uploadBehaviour != null)
             {
-                this.uploadCompleteCallBack(this.localFilePath);
+                this.uploadBehaviour.OnUploadComplete(this.localFilePath);
             }
         }
 
@@ -155,9 +159,26 @@ namespace UTJ
                     yield return null;
                 }
                 var response = request.downloadHandler.text;
-                this.initServerResponse = JsonUtility.FromJson<InitServerResponse>(response);
+                try
+                {
+                    this.initServerResponse = JsonUtility.FromJson<InitServerResponse>(response);
+                }catch(Exception e)
+                {
+                    Debug.LogError(response + e);
+                }
                 doneFlag = false;
             }
+        }
+
+        private void Retry()
+        {
+            Debug.Assert(this.status == EStatus.WaitingForRetryOrCancel, "Invalid state at Retry " + status);
+            status = EStatus.None;
+        }
+        private void Cancel()
+        {
+            Debug.Assert(this.status == EStatus.WaitingForRetryOrCancel, "Invalid state at Retry " + status);
+            status = EStatus.Canceled;
         }
 
         private IEnumerator UploadBlockFile(string fileName,int block,int blockNum)
@@ -176,18 +197,42 @@ namespace UTJ
                 // request
                 UnityWebRequest request = UnityWebRequest.Post(ServerUrl, form);
                 yield return request.SendWebRequest();
-
-                // log file
+                while (!request.isDone)
+                {
+                    yield return null;
+                }
+                // Save
                 if (request.isNetworkError)
                 {
-                    uploadFlag = false;
+                    if( this.uploadBehaviour != null)
+                    {
+                        this.uploadBehaviour.OnBlockFailed(this.localFilePath, block,blockNum, this.Retry, this.Cancel);
+                        while( this.status == EStatus.WaitingForRetryOrCancel)
+                        {
+                            yield return null;
+                        }
+                        switch( status)
+                        {
+                            case EStatus.Canceled:
+                                uploadFlag = false;
+                                yield break;
+                            case EStatus.None:
+                                uploadFlag = true;
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        uploadFlag = false;
+                    }
                 }
-                else if(request.isDone)
+                else
                 {
                     uploadFlag = false;
-                    if (this.blockProgressCallback != null)
+                    // progress
+                    if (this.uploadBehaviour != null)
                     {
-                        this.blockProgressCallback(this.localFilePath, block, blockNum);
+                        this.uploadBehaviour.OnBlockProgress(this.localFilePath, block, blockNum);
                     }
                 }
             }
