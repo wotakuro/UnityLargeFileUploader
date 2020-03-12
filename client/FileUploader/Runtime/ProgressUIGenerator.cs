@@ -34,16 +34,21 @@ namespace UTJ.Uploader
 
             public void SetProgress(float p)
             {
-                p = BarWidth;
+                Vector2 size = new Vector2( p * BarWidth ,BarHeight);
+                barRectTransform.sizeDelta = size;
             }
             public void Disable()
             {
                 this.bgRectTransform.gameObject.SetActive(false);
             }
+            public void Enable()
+            {
+                this.bgRectTransform.gameObject.SetActive(true);
+                SetProgress(0.0f);
+            }
 
             public void SetPosition(Vector2 position)
             {
-                this.bgRectTransform.gameObject.SetActive(true);
                 this.bgRectTransform.anchoredPosition = new Vector3(position.x, position.y);
             }
         }
@@ -72,12 +77,6 @@ namespace UTJ.Uploader
 
         public static void Generate()
         {
-            var inst = ProgressUIGenerator.Instance;
-            for (int i = 0; i < 4; ++i)
-            {
-                var obj = inst.GetProgressObject();
-            }
-           // GenerateBar(bg,new Vector2(-20,20) );
         }
 
         public ProgressObject GetProgressObject()
@@ -93,6 +92,7 @@ namespace UTJ.Uploader
             }
             this.activeProgress.Add(obj);
             int count = activeProgress.Count;
+            obj.Enable();
             obj.SetPosition( GetPosition(count -1) );
 
             this.ExpandBgObject(count);
@@ -115,7 +115,11 @@ namespace UTJ.Uploader
 
         private void ExpandBgObject(int count)
         {
-            bgObject.sizeDelta = new Vector2(BarWidth + BarBorderWidth + 20, (BarHeight + BarBorderHeight + BarMarginHeight) * count + 20);
+            this.progressCanvas.gameObject.SetActive(count > 0);
+            if (count > 0)
+            {
+                bgObject.sizeDelta = new Vector2(BarWidth + BarBorderWidth + 20, (BarHeight + BarBorderHeight + BarMarginHeight) * count + 20);
+            }
         }
 
         private ProgressUIGenerator()

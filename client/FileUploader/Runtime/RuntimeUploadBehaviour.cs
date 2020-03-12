@@ -9,6 +9,13 @@ namespace UTJ
 
     public class RuntimeUploadBehaviour : MonoBehaviour
     {
+        private struct DelayCallInfo
+        {
+            public System.Action updateCallback;
+            public float leftTime;
+        }
+
+
         public System.Action updateCallback;
         // Update is called once per frame
         void Update()
