@@ -32,15 +32,27 @@ namespace UTJ.Uploader
 
         public void OnUploadFailed(string file)
         {
-            ProgressUIGenerator.Instance.ReleaseProgressObject(progress);
+            progress.SetFail();
+
+            ProgressUIGenerator.Instance.AddDelayCall(
+                () =>
+                {
+                    ProgressUIGenerator.Instance.ReleaseProgressObject(progress);
+                }, 1.0f);
         }
         public void OnUploadComplete(string file)
         {
-            progress.SetProgress(1.0f);
-            ProgressUIGenerator.Instance.ReleaseProgressObject(progress);
+            progress.SetComplete();
+
+            ProgressUIGenerator.Instance.AddDelayCall(
+                () => {
+                    ProgressUIGenerator.Instance.ReleaseProgressObject(progress);
+                }, 1.0f);
+
         }
         public void OnBlockFailed(string file, int block, int blockNum, System.Action retry, System.Action cancel)
         {
+            ProgressUIGenerator.Instance.AddDelayCall(retry, 1.0f);
         }
         public void OnBlockProgress(string file, int block, int blockNum)
         {

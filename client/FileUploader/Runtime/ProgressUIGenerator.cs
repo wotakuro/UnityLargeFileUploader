@@ -14,20 +14,27 @@ namespace UTJ.Uploader
         private const float BarBorderHeight = 2;
         private const float BarMarginHeight = 4;
 
+
+
         public class ProgressObject
         {
             private RectTransform bgRectTransform;
-
+            private Image barImage;
             private RectTransform barRectTransform;
             private static int currentId = 0;
 
             private int instanceId = 0;
 
-            public ProgressObject(RectTransform bg,RectTransform bar)
+            private static Color barNormalColor = new Color(0.3f, 0.9f, 0.4f);
+            private static Color barFailedColor = new Color(0.8f, 0.3f, 0.1f);
+            private static Color barCompleteColor = new Color(0.1f, 0.7f, 0.9f);
+
+
+            public ProgressObject(RectTransform bg,RectTransform bar,Image img)
             {
                 this.bgRectTransform = bg;
                 this.barRectTransform = bar;
-
+                this.barImage = img;
                 this.instanceId = currentId;
                 ++currentId;
             }
@@ -37,6 +44,16 @@ namespace UTJ.Uploader
                 Vector2 size = new Vector2( p * BarWidth ,BarHeight);
                 barRectTransform.sizeDelta = size;
             }
+            public void SetFail()
+            {
+                this.barImage.color = barFailedColor;
+            }
+            public void SetComplete()
+            {
+                this.SetProgress(1.0f);
+                this.barImage.color = barCompleteColor;
+            }
+
             public void Disable()
             {
                 this.bgRectTransform.gameObject.SetActive(false);
@@ -45,6 +62,7 @@ namespace UTJ.Uploader
             {
                 this.bgRectTransform.gameObject.SetActive(true);
                 SetProgress(0.0f);
+                this.barImage.color = barNormalColor;
             }
 
             public void SetPosition(Vector2 position)
@@ -55,13 +73,19 @@ namespace UTJ.Uploader
 
         private static ProgressUIGenerator instance;
 
+
         // canvas
         private Canvas progressCanvas;
         // bgObject
         private RectTransform bgObject;
+        //
+        private RuntimeUploadProxy uploadProxy;
 
         private Queue<ProgressObject> poolProgress = new Queue<ProgressObject>();
         private List<ProgressObject> activeProgress = new List<ProgressObject>();
+
+        private Font uiFont;
+
 
         public static ProgressUIGenerator Instance
         {
@@ -74,9 +98,11 @@ namespace UTJ.Uploader
                 return instance;
             }
         }
+        
 
-        public static void Generate()
+        public void AddDelayCall(System.Action act , float t)
         {
+            this.uploadProxy.AddDelayCall(act, t);
         }
 
         public ProgressObject GetProgressObject()
@@ -115,7 +141,7 @@ namespace UTJ.Uploader
 
         private void ExpandBgObject(int count)
         {
-            this.progressCanvas.gameObject.SetActive(count > 0);
+            this.progressCanvas.enabled = (count > 0);
             if (count > 0)
             {
                 bgObject.sizeDelta = new Vector2(BarWidth + BarBorderWidth + 20, (BarHeight + BarBorderHeight + BarMarginHeight) * count + 20);
@@ -124,6 +150,7 @@ namespace UTJ.Uploader
 
         private ProgressUIGenerator()
         {
+            this.uiFont = Font.CreateDynamicFontFromOSFont("", 12); 
             this.InitCanvas();
             var canvasTrans = this.progressCanvas.GetComponent<RectTransform>();
             this.bgObject = this.GenerateBg(canvasTrans);            
@@ -156,7 +183,7 @@ namespace UTJ.Uploader
             textTxt.text = "Upload";
             textTxt.alignment = TextAnchor.LowerLeft;
             textTxt.color = Color.black;
-            textTxt.font = Font.CreateDynamicFontFromOSFont("", 12);
+            textTxt.font = this.uiFont;
 
             textRect.parent = bgRect;
             textRect.pivot = Vector2.zero;
@@ -193,15 +220,16 @@ namespace UTJ.Uploader
             bgImg.color = Color.black;
             barImg.color = new Color(0.3f,0.9f,0.4f);
 
-            var progressObject = new ProgressObject(bgRect,barRect);
+            var progressObject = new ProgressObject(bgRect,barRect,barImg);
             return progressObject;
         }
 
         private void InitCanvas()
         {
-            var gmo = new GameObject("progressCanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
+            var gmo = new GameObject("progressCanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler),typeof(RuntimeUploadProxy));
             var canvas = gmo.GetComponent<Canvas>();
             var scaler = gmo.GetComponent<CanvasScaler>();
+            this.uploadProxy = gmo.GetComponent<RuntimeUploadProxy>();
             canvas.sortingOrder = int.MaxValue;
             canvas.renderMode = RenderMode.ScreenSpaceCamera;
 

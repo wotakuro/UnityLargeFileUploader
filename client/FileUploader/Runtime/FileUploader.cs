@@ -7,6 +7,7 @@ namespace UTJ.Uploader
     {
         private static FileUploader instance = null;
         private List<FileUploadLogic> logics = new List<FileUploadLogic>();
+        private RuntimeUploadProxy runtimeBehaiour;
 
         [UnityEngine.RuntimeInitializeOnLoadMethod]
         static void RuntimeInitialize()
@@ -35,8 +36,8 @@ namespace UTJ.Uploader
         {
             var gmo = new UnityEngine.GameObject("RuntimeUploader" );
             UnityEngine.GameObject.DontDestroyOnLoad(gmo);
-            RuntimeUploadBehaviour behaiour = gmo.AddComponent<RuntimeUploadBehaviour>();
-            behaiour.updateCallback = this.Update;
+            runtimeBehaiour = gmo.AddComponent<RuntimeUploadProxy>();
+            runtimeBehaiour.updateCallback = this.Update;
         }
 
         public void SetUploadUrl(string url){
