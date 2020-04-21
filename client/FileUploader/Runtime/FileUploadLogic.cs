@@ -13,7 +13,7 @@ namespace UTJ.Uploader
             Canceled,
         };
 
-        public static string ServerUrl{ get;set;}
+        public string ServerUrl{ get;set;}
 
         private string localFilePath;
         private string fileInformation;

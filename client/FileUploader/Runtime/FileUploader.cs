@@ -40,14 +40,11 @@ namespace UTJ.Uploader
             runtimeBehaiour.updateCallback = this.Update;
         }
 
-        public void SetUploadUrl(string url){
-            FileUploadLogic.ServerUrl = url;
-        }
 
-
-        public void UploadRequest(string file, string info, IFileUploadProgressBehaviour behaviour)
+        public void UploadRequest(string url,string file, string info, IFileUploadProgressBehaviour behaviour)
         {
             var logic = GetOrCreateLogic();
+            logic.ServerUrl = url;
             logic.Request(file, info, behaviour);
         }
 

@@ -46,6 +46,10 @@ namespace UTJ.Uploader
 
             ProgressUIGenerator.Instance.AddDelayCall(
                 () => {
+                    if( this.fileDeleteFlag)
+                    {
+                        System.IO.File.Delete(file);
+                    }
                     ProgressUIGenerator.Instance.ReleaseProgressObject(progress);
                 }, 1.0f);
 
